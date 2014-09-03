@@ -8,24 +8,20 @@ package com.offbytwo.jenkins;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.lang.StringUtils;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import com.offbytwo.jenkins.client.JenkinsHttpClient;
-import com.offbytwo.jenkins.model.*;
-import org.apache.http.client.HttpResponseException;
+import com.offbytwo.jenkins.model.Computer;
 
 /**
  * The main starting point for interacting with a Jenkins server.
  */
-public class JenkinsServer {
-    private final JenkinsHttpClient client;
-
-
+public class JenkinsServer extends AbstractJenkinsServer {
     /**
      * Create a new Jenkins server reference given only the server address
      *
@@ -52,7 +48,11 @@ public class JenkinsServer {
      * @param client Specialized client to use.
      */
     public JenkinsServer(JenkinsHttpClient client) {
-        this.client = client;
+        super(client);
+    }
+    
+    public JenkinsServerPathRequestBuilder folder(String... jobNames) {
+	return new JenkinsServerPathRequestBuilder(getClient(), jobNames);
     }
 
     /**
@@ -62,95 +62,12 @@ public class JenkinsServer {
      */
     public boolean isRunning() {
         try {
-            client.get("/");
+            getClient().get("/");
             return true;
         } catch (IOException e) {
             return false;
         }
     }
-
-    /**
-     * Get a list of all the defined jobs on the server (at the summary level)
-     *
-     * @return list of defined jobs (summary level, for details @see Job#details
-     * @throws IOException
-     */
-    public Map<String, Job> getJobs() throws IOException {
-        List<Job> jobs = client.get("/", MainView.class).getJobs();
-        return Maps.uniqueIndex(jobs, new Function<Job, String>() {
-            @Override
-            public String apply(Job job) {
-                job.setClient(client);
-                return job.getName().toLowerCase();
-            }
-        });
-    }
-
-    /**
-     * Get a single Job from the server.
-     *
-     * @return A single Job, null if not present
-     * @throws IOException
-     */
-    public JobWithDetails getJob(String jobName) throws  IOException {
-        try {
-            JobWithDetails job = client.get("/job/"+encode(jobName),JobWithDetails.class);
-            job.setClient(client);
-
-            return job;
-        } catch (HttpResponseException e) {
-            if(e.getStatusCode() == 404) {
-                return null;
-            }
-            throw e;
-        }
-
-    }
-    
-    public MavenJobWithDetails getMavenJob(String jobName) throws IOException {
-        try {
-            MavenJobWithDetails job = client.get("/job/"+encode(jobName), MavenJobWithDetails.class);
-            job.setClient(client);
-
-            return job;
-        } catch (HttpResponseException e) {
-            if(e.getStatusCode() == 404) {
-                return null;
-            }
-            throw e;
-        }
-    }
-
-    /**
-     * Create a job on the server using the provided xml
-     *
-     * @return the new job object
-     * @throws IOException
-     */
-    public void createJob(String jobName, String jobXml) throws IOException {
-        client.post_xml("/createItem?name=" + encode(jobName), jobXml);
-    }
-
-    /**
-     * Get the xml description of an existing job
-     *
-     * @return the new job object
-     * @throws IOException
-     */
-    public String getJobXml(String jobName) throws IOException {
-        return client.get("/job/" + encode(jobName) + "/config.xml");
-    }
-
-    /**
-     * Get the description of an existing Label
-     *
-     * @return label object
-     * @throws IOException
-     */
-    public LabelWithDetails getLabel(String labelName) throws IOException {
-        return client.get("/label/" + encode(labelName), LabelWithDetails.class);
-    }
-
 
     /**
      * Get a list of all the computers on the server (at the summary level)
@@ -159,28 +76,20 @@ public class JenkinsServer {
      * @throws IOException
      */
     public Map<String, Computer> getComputers() throws IOException {
-        List<Computer> computers = client.get("computer/", Computer.class).getComputers();
+        List<Computer> computers = getClient().get("computer/", Computer.class).getComputers();
         return Maps.uniqueIndex(computers, new Function<Computer, String>() {
             @Override
             public String apply(Computer computer) {
-                computer.setClient(client);
+                computer.setClient(getClient());
                 return computer.getDisplayName().toLowerCase();
             }
         });
     }
 
-    /**
-     * Update the xml description of an existing job
-     *
-     * @return the new job object
-     * @throws IOException
-     */
-    public void updateJob(String jobName, String jobXml) throws IOException {
-        client.post_xml("/job/" + encode(jobName) + "/config.xml", jobXml);
+    @Override
+    protected String getRootJobPath() {
+	return StringUtils.EMPTY;
     }
 
-    private String encode(String pathPart) {
-        // jenkins doesn't like the + for space, use %20 instead
-        return URLEncoder.encode(pathPart).replaceAll("\\+","%20");
-    }
+    
 }
