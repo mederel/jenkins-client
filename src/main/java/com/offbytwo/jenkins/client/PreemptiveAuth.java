@@ -6,6 +6,8 @@
 
 package com.offbytwo.jenkins.client;
 
+import java.io.IOException;
+
 import org.apache.http.HttpException;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpRequest;
@@ -18,8 +20,6 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.protocol.ClientContext;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
-
-import java.io.IOException;
 
 class PreemptiveAuth implements HttpRequestInterceptor {
     @Override
@@ -36,7 +36,8 @@ class PreemptiveAuth implements HttpRequestInterceptor {
                 if (creds == null) {
                     throw new HttpException("No credentials for preemptive authentication");
                 }
-                authState.update(authScheme, creds);
+                authState.setAuthScheme(authScheme);
+                authState.setCredentials(creds);
             }
         }
     }

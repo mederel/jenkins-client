@@ -6,12 +6,13 @@
 
 package com.offbytwo.jenkins.client;
 
-import static org.apache.commons.lang.StringUtils.isNotBlank;
+import static org.apache.commons.lang.StringUtils.*;
 
-import com.offbytwo.jenkins.client.validator.HttpResponseValidator;
-import com.offbytwo.jenkins.model.BaseModel;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
+import java.util.Scanner;
 
-import com.offbytwo.jenkins.model.Crumb;
 import org.apache.http.HttpResponse;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -19,7 +20,6 @@ import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -29,10 +29,9 @@ import org.apache.http.util.EntityUtils;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
-import java.util.Scanner;
+import com.offbytwo.jenkins.client.validator.HttpResponseValidator;
+import com.offbytwo.jenkins.model.BaseModel;
+import com.offbytwo.jenkins.model.Crumb;
 
 public class JenkinsHttpClient {
 
@@ -209,7 +208,8 @@ public class JenkinsHttpClient {
         }
 
         if (xml_data != null) {
-            request.setEntity(new StringEntity(xml_data, ContentType.APPLICATION_XML));
+            request.setEntity(new StringEntity(xml_data));
+            request.addHeader(new BasicHeader("content-type", "application/xml"));
         }
         HttpResponse response = client.execute(request, localContext);
         httpResponseValidator.validateResponse(response);
@@ -276,7 +276,7 @@ public class JenkinsHttpClient {
     }
 
     private void releaseConnection(HttpRequestBase httpRequestBase) {
-        httpRequestBase.releaseConnection();
+      //httpRequestBase.releaseConnection();
     }
 
 }
